@@ -1,625 +1,134 @@
-<!DOCTYPE html>
-
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>BlindRank — Head-to-Head Ranker</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap');
-
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
-:root {
-–bg:      #0d0d0d;
-–surface: #161616;
-–card:    #1e1e1e;
-–border:  #2a2a2a;
-–border2: #3a3a3a;
-–ink:     #f0ede6;
-–ink2:    #888480;
-–ink3:    #555250;
-–accent:  #e8ff47;
-–red:     #ff4040;
-–max:     480px;
-–r:       10px;
-}
-
-html { background: var(–bg); }
-body {
-min-height: 100vh;
-background: var(–bg);
-color: var(–ink);
-font-family: ‘DM Mono’, ‘Courier New’, monospace;
-display: flex;
-justify-content: center;
-align-items: flex-start;
-}
-
-#app {
-width: 100%;
-max-width: var(–max);
-min-height: 100vh;
-display: flex;
-flex-direction: column;
-border-left: 1px solid var(–border);
-border-right: 1px solid var(–border);
-}
-
-@media (min-width: 520px) {
-#app { box-shadow: 0 0 80px rgba(0,0,0,0.7); }
-body { background: #050505; }
-}
-
-.screen { display:none; flex-direction:column; width:100%; flex:1; }
-.screen.active { display:flex; }
-
-/* ── SETUP ── */
-#setup-screen { background: var(–bg); }
-
-.s-header {
-padding: 52px 28px 24px;
-border-bottom: 1px solid var(–border);
-}
-.s-logo {
-font-family: ‘Bebas Neue’, sans-serif;
-font-size: 80px; line-height: 0.9; letter-spacing: 0.02em;
-}
-.s-logo em { color: var(–accent); font-style: normal; }
-.s-tagline { font-size: 10px; letter-spacing: 0.25em; color: var(–ink3); text-transform: uppercase; margin-top: 10px; }
-
-.s-sec { padding: 24px 28px 0; }
-.s-lbl {
-font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase;
-color: var(–ink3); margin-bottom: 12px;
-display: flex; align-items: center; gap: 8px;
-}
-.badge {
-background: var(–accent); color: #0d0d0d;
-font-size: 9px; font-weight: 500;
-padding: 2px 8px; border-radius: 20px; letter-spacing: 0.05em;
-}
-
-.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.mode-tile {
-background: var(–surface); border: 1.5px solid var(–border);
-border-radius: var(–r); padding: 16px 12px;
-cursor: pointer; text-align: center; user-select: none;
-transition: border-color 0.15s, background 0.15s, transform 0.1s;
-}
-.mode-tile:active { transform: scale(0.96); }
-.mode-tile.on { border-color: var(–accent); background: rgba(232,255,71,0.06); }
-.m-icon { font-size: 28px; display: block; margin-bottom: 8px; }
-.m-name { font-size: 10px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: var(–ink); }
-.m-desc { font-size: 9px; color: var(–ink3); margin-top: 3px; line-height: 1.6; }
-
-.items-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.item-row {
-display: flex; align-items: center; gap: 12px;
-background: var(–surface); border: 1px solid var(–border);
-border-radius: 8px; padding: 10px 12px;
-animation: fadeUp 0.2s ease;
-}
-@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-
-.i-thumb { width:42px; height:42px; border-radius:6px; object-fit:cover; flex-shrink:0; border:1px solid var(–border2); }
-.i-box {
-width:42px; height:42px; border-radius:6px; flex-shrink:0;
-background: var(–card); border: 1px solid var(–border2);
-display:flex; align-items:center; justify-content:center; font-size:20px;
-}
-.i-info { flex:1; min-width:0; }
-.i-name { font-size:12px; font-weight:500; color:var(–ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.i-meta { font-size:9px; color:var(–ink3); margin-top:2px; letter-spacing:0.1em; text-transform:uppercase; }
-.i-del {
-width:30px; height:30px; border-radius:50%; flex-shrink:0;
-background:none; border:1px solid var(–border2); color:var(–ink3);
-font-size:13px; cursor:pointer;
-display:flex; align-items:center; justify-content:center; transition:all 0.12s;
-}
-.i-del:hover, .i-del:active { background:var(–red); color:#fff; border-color:var(–red); }
-
-.add-sec { padding: 20px 28px; }
-
-.drop-btn {
-width:100%; padding:20px;
-border: 1.5px dashed var(–border2); border-radius: var(–r);
-background: var(–surface);
-display:flex; align-items:center; justify-content:center; gap:10px;
-cursor:pointer; transition:all 0.15s;
-font-family:‘DM Mono’,monospace;
-font-size:11px; letter-spacing:0.15em; text-transform:uppercase; color:var(–ink3);
-}
-.drop-btn:hover { border-color:var(–accent); color:var(–accent); }
-.drop-btn:active { transform:scale(0.98); }
-
-.irow { display:flex; gap:8px; margin-top:8px; }
-.ti {
-flex:1; padding:13px 14px;
-border:1.5px solid var(–border); border-radius:8px;
-background:var(–surface); font-family:‘DM Mono’,monospace;
-font-size:13px; color:var(–ink); outline:none; transition:border-color 0.15s;
--webkit-appearance:none;
-}
-.ti:focus { border-color: var(–accent); }
-.ti::placeholder { color: var(–ink3); }
-.ti.em { width:54px; flex:none; text-align:center; font-size:22px; padding:13px 8px; }
-
-.add-btn {
-width:48px; height:48px; flex-shrink:0;
-background:var(–accent); color:#0d0d0d;
-border:none; border-radius:8px; font-size:24px; font-weight:700;
-cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.12s;
-}
-.add-btn:active { transform:scale(0.92); background:#d4eb38; }
-
-.tab-row { display:flex; gap:6px; margin-bottom:10px; }
-.tab-p {
-flex:1; padding:9px; border:1.5px solid var(–border); border-radius:6px;
-background:var(–surface); font-family:‘DM Mono’,monospace;
-font-size:9px; letter-spacing:0.15em; text-transform:uppercase;
-color:var(–ink3); cursor:pointer; text-align:center; transition:all 0.12s;
-}
-.tab-p.on { background:var(–accent); color:#0d0d0d; border-color:var(–accent); }
-
-.start-wrap { padding:16px 28px 52px; margin-top:auto; }
-.start-btn {
-width:100%; padding:18px;
-background:var(–accent); color:#0d0d0d; border:none;
-border-radius:var(–r); font-family:‘DM Mono’,monospace;
-font-size:12px; font-weight:500; letter-spacing:0.2em; text-transform:uppercase;
-cursor:pointer; transition:all 0.15s;
-}
-.start-btn:active { transform:scale(0.97); background:#d4eb38; }
-.start-btn:disabled {
-background:var(–surface); color:var(–ink3);
-border:1px solid var(–border); cursor:not-allowed; transform:none;
-}
-
-input[type=file] { display:none; }
-
-/* ── RANK ── */
-#rank-screen { background:var(–bg); min-height:100vh; }
-
-.r-bar {
-display:flex; align-items:center; gap:14px;
-padding:16px 20px; border-bottom:1px solid var(–border); flex-shrink:0;
-}
-.r-logo { font-family:‘Bebas Neue’,sans-serif; font-size:24px; color:var(–ink); flex-shrink:0; }
-.r-pw { flex:1; }
-.r-pt { height:3px; background:var(–border); border-radius:2px; }
-.r-pf { height:100%; background:var(–accent); border-radius:2px; transition:width 0.4s ease; }
-.r-pn { font-size:9px; color:var(–ink3); margin-top:5px; text-align:right; letter-spacing:0.1em; }
-.r-x { background:none; border:none; color:var(–ink3); font-size:18px; cursor:pointer; padding:4px; flex-shrink:0; transition:color 0.12s; }
-.r-x:hover { color:var(–red); }
-
-.match-area {
-flex:1; display:flex; flex-direction:column;
-align-items:center; justify-content:center;
-padding:16px 20px; gap:10px;
-}
-
-.mc {
-width:100%; flex:1;
-border-radius:var(–r); border:1.5px solid var(–border);
-background:var(–card); box-shadow:0 8px 32px rgba(0,0,0,0.4);
-cursor:pointer; transition:transform 0.1s, box-shadow 0.1s, border-color 0.15s;
-position:relative; overflow:hidden; display:flex; flex-direction:column;
-max-height:36vh; min-height:120px;
-}
-.mc:active { transform:scale(0.975); box-shadow:0 2px 12px rgba(0,0,0,0.3); }
-.mc.flash { animation:ring 0.28s ease; }
-@keyframes ring {
-0%   { border-color:var(–border); }
-40%  { border-color:var(–accent); box-shadow:0 0 0 3px rgba(232,255,71,0.25); }
-100% { border-color:var(–border); }
-}
-
-.mc.is-photo img { width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; user-select:none; }
-
-.mc.is-text { align-items:center; justify-content:center; padding:24px 20px; gap:10px; }
-.tc-em { font-size:42px; line-height:1; }
-.tc-tx { font-size:20px; font-weight:500; color:var(–ink); text-align:center; line-height:1.4; word-break:break-word; }
-
-.mc-img { width:100%; flex:1; object-fit:cover; display:block; min-height:80px; }
-.mc-lbl { padding:10px 14px; font-size:12px; font-weight:500; color:var(–ink); border-top:1px solid var(–border); background:var(–card); flex-shrink:0; }
-
-.pick-b {
-position:absolute; top:10px; right:10px;
-background:rgba(13,13,13,0.75); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
-border:1px solid var(–border2); border-radius:20px;
-padding:4px 10px; font-size:9px; letter-spacing:0.2em; text-transform:uppercase;
-color:var(–ink3); pointer-events:none;
-}
-
-.vs-line { display:flex; align-items:center; gap:10px; flex-shrink:0; width:100%; }
-.vs-r { flex:1; height:1px; background:var(–border); }
-.vs-t { font-family:‘Bebas Neue’,sans-serif; font-size:18px; color:var(–ink3); letter-spacing:0.1em; }
-
-.r-ctrl { padding:10px 20px; display:flex; gap:8px; flex-shrink:0; }
-.cb {
-flex:1; padding:15px 8px; border-radius:8px; border:none;
-font-family:‘DM Mono’,monospace; font-size:9px; font-weight:500;
-letter-spacing:0.12em; text-transform:uppercase; cursor:pointer;
-display:flex; flex-direction:column; align-items:center; gap:5px; transition:all 0.12s;
-background:var(–surface); color:var(–ink2); border:1.5px solid var(–border);
-}
-.cb .ci { font-size:20px; line-height:1; }
-.cb:active { transform:scale(0.94); }
-.cb.sm { flex: 0 0 56px; }
-
-.r-hint { padding:8px 20px 20px; text-align:center; flex-shrink:0; }
-.r-hint p { font-size:9px; letter-spacing:0.18em; color:var(–ink3); text-transform:uppercase; }
-
-/* ── RESULTS ── */
-#results-screen { background:var(–bg); }
-
-.res-hd {
-padding:40px 28px 24px;
-border-bottom:1px solid var(–border);
-}
-.res-ttl {
-font-family:‘Bebas Neue’,sans-serif;
-font-size:68px; line-height:0.9; letter-spacing:0.02em;
-}
-.res-ttl em { color:var(–accent); font-style:normal; }
-.res-meta { font-size:9px; letter-spacing:0.25em; color:var(–ink3); text-transform:uppercase; margin-top:10px; }
-
-.res-list { padding:20px 20px 0; display:flex; flex-direction:column; gap:8px; }
-
-.res-row {
-display:flex; align-items:center; gap:12px;
-background:var(–surface); border:1px solid var(–border);
-border-radius:var(–r); overflow:hidden;
-animation:fadeUp 0.35s ease both;
-}
-.rn {
-font-family:‘Bebas Neue’,sans-serif; font-size:40px;
-width:52px; text-align:center; flex-shrink:0;
-color:var(–border2); padding-left:4px;
-}
-.rn.g { color:var(–accent); }
-.rn.s { color:#aaa; }
-.rn.b { color:#cd7f32; }
-.r-thumb { width:68px; height:68px; object-fit:cover; flex-shrink:0; }
-.r-tbox { width:68px; height:68px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:28px; background:var(–card); }
-.r-inf { flex:1; padding:12px 12px 12px 0; min-width:0; }
-.r-nm { font-size:13px; font-weight:500; color:var(–ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.r-sc { font-size:10px; color:var(–ink3); margin-top:3px; letter-spacing:0.08em; }
-.r-bg { height:2px; background:var(–border); border-radius:2px; margin-top:8px; }
-.r-br { height:100%; border-radius:2px; background:var(–accent); width:0; transition:width 0.7s ease; }
-
-.res-ft { padding:24px 28px 52px; display:flex; flex-direction:column; gap:8px; }
-.rb {
-width:100%; padding:16px; border-radius:8px; border:none;
-font-family:‘DM Mono’,monospace; font-size:11px; font-weight:500;
-letter-spacing:0.18em; text-transform:uppercase; cursor:pointer; transition:all 0.12s;
-}
-.rb:active { transform:scale(0.97); }
-.rb-p { background:var(–accent); color:#0d0d0d; }
-.rb-p:active { background:#d4eb38; }
-.rb-g { background:var(–surface); color:var(–ink2); border:1.5px solid var(–border); }
-.rb-g:active { background:var(–card); }
-</style>
-
-</head>
-<body>
-<div id="app">
-
-<!-- SETUP -->
-
-<div id="setup-screen" class="screen active">
-  <div class="s-header">
-    <div class="s-logo">BLIND<em>RANK</em></div>
-    <div class="s-tagline">Head-to-head · ELO scoring · Any type</div>
-  </div>
-
-  <div class="s-sec">
-    <div class="s-lbl">Mode</div>
-    <div class="mode-grid">
-      <div class="mode-tile on" data-mode="photo" onclick="pickMode('photo')">
-        <span class="m-icon">🖼️</span>
-        <div class="m-name">Photos</div>
-        <div class="m-desc">From your gallery</div>
-      </div>
-      <div class="mode-tile" data-mode="text" onclick="pickMode('text')">
-        <span class="m-icon">💬</span>
-        <div class="m-name">Text</div>
-        <div class="m-desc">Names, ideas, options</div>
-      </div>
-      <div class="mode-tile" data-mode="mixed" onclick="pickMode('mixed')">
-        <span class="m-icon">🗂️</span>
-        <div class="m-name">Mixed</div>
-        <div class="m-desc">Photos + labels</div>
-      </div>
-      <div class="mode-tile" data-mode="custom" onclick="pickMode('custom')">
-        <span class="m-icon">✏️</span>
-        <div class="m-name">Custom</div>
-        <div class="m-desc">Emoji + text</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="add-sec">
-    <div id="ui-photo">
-      <button class="drop-btn" onclick="document.getElementById('fi-photo').click()">
-        <span>📷</span><span>Add photos from gallery</span>
-      </button>
-      <input type="file" id="fi-photo" accept="image/*" multiple>
-    </div>
-    <div id="ui-text" style="display:none">
-      <div class="irow">
-        <input class="ti" id="ti-text" placeholder="Type an option…" maxlength="80">
-        <button class="add-btn" onclick="addText()">+</button>
-      </div>
-    </div>
-    <div id="ui-mixed" style="display:none">
-      <button class="drop-btn" onclick="document.getElementById('fi-mixed').click()">
-        <span>📷</span><span>Add photos</span>
-      </button>
-      <input type="file" id="fi-mixed" accept="image/*" multiple>
-      <div class="irow">
-        <input class="ti" id="ti-mixed" placeholder="Or type a text item…" maxlength="60">
-        <button class="add-btn" onclick="addMixedText()">+</button>
-      </div>
-    </div>
-    <div id="ui-custom" style="display:none">
-      <div class="tab-row">
-        <div class="tab-p on" id="tp-emoji" onclick="setCtab('emoji')">Emoji + Text</div>
-        <div class="tab-p" id="tp-plain" onclick="setCtab('plain')">Text only</div>
-      </div>
-      <div class="irow">
-        <input class="ti em" id="ci-emoji" placeholder="😀" maxlength="4">
-        <input class="ti" id="ci-text" placeholder="Label…" maxlength="60">
-        <button class="add-btn" onclick="addCustom()">+</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="s-sec" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:16px;">
-    <div class="s-lbl">Items <span class="badge" id="cnt">0</span></div>
-    <div class="items-list" id="ilist"></div>
-  </div>
-
-  <div class="start-wrap">
-    <button class="start-btn" id="start-btn" disabled onclick="startRanking()">
-      Add at least 2 items
-    </button>
-  </div>
-</div>
-
-<!-- RANK -->
-
-<div id="rank-screen" class="screen">
-  <div class="r-bar">
-    <div class="r-logo">RANK</div>
-    <div class="r-pw">
-      <div class="r-pt"><div class="r-pf" id="pfill" style="width:0%"></div></div>
-      <div class="r-pn" id="ptxt">0 / 0</div>
-    </div>
-    <button class="r-x" onclick="confirmQuit()">✕</button>
-  </div>
-
-  <div class="match-area" id="match-area">
-    <div class="mc" id="card-a"></div>
-    <div class="vs-line"><div class="vs-r"></div><div class="vs-t">VS</div><div class="vs-r"></div></div>
-    <div class="mc" id="card-b"></div>
-  </div>
-
-  <div class="r-ctrl">
-    <button class="cb sm" onclick="undoLast()"><span class="ci">↩</span><span>undo</span></button>
-    <button class="cb" onclick="voteTie()"><span class="ci">🤝</span><span>tie</span></button>
-    <button class="cb" onclick="skipMatch()"><span class="ci">⟳</span><span>skip</span></button>
-  </div>
-  <div class="r-hint"><p>Tap a card to pick your favourite</p></div>
-</div>
-
-<!-- RESULTS -->
-
-<div id="results-screen" class="screen">
-  <div class="res-hd">
-    <div class="res-ttl">THE<br><em>VERDICT</em></div>
-    <div class="res-meta" id="rmeta">— matchups complete</div>
-  </div>
-  <div class="res-list" id="rlist"></div>
-  <div class="res-ft">
-    <button class="rb rb-p" onclick="rankAgain()">Rank Again</button>
-    <button class="rb rb-g" onclick="showScreen('setup-screen')">Add / Change Items</button>
-    <button class="rb rb-g" onclick="exportResults()">Export Results</button>
-    <button class="rb rb-g" onclick="hardReset()">Start Over</button>
-  </div>
-</div>
-
-</div>
-
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mahole Chinodyaruswa Family Tree</title><style>
+:root{--bg:#efebe5;--ink:#1f2933;--card:#fff;--m:#0b7490;--mbg:#e3f2f7;--f:#d25a14;--fbg:#fdeadd;--u:#7b8089;--line:#7b8089;--hi:#f2a33a;--bar:#fffdf9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171b;--ink:#f1f1ee;--card:#20252b;--m:#58c3e0;--mbg:#173b46;--f:#ff9d62;--fbg:#4a2a16;--u:#8b919b;--line:#8b919b;--bar:#1c2025}}
+:root[data-theme="dark"]{--bg:#14171b;--ink:#f1f1ee;--card:#20252b;--m:#58c3e0;--mbg:#173b46;--f:#ff9d62;--fbg:#4a2a16;--u:#8b919b;--line:#8b919b;--bar:#1c2025}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font-family:Verdana,Geneva,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+#top{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bar);border-bottom:2px solid var(--line);padding:8px 10px}
+#top h1{font-size:1rem;margin:0 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row{display:flex;gap:6px;align-items:center}
+#q{flex:1;min-width:0;font:inherit;font-size:16px;padding:9px 10px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink)}
+button{font:inherit;font-weight:bold;font-size:15px;padding:9px 11px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.pri{background:var(--hi);color:#1f2933;border-color:var(--hi)}button.dng{border-color:#c0392b;color:#c0392b}
+#res{position:absolute;left:10px;right:10px;top:100%;background:var(--card);border:2px solid var(--line);border-radius:10px;max-height:50vh;overflow:auto;display:none}
+#res div{padding:10px 12px;border-bottom:1px solid var(--line);font-size:15px}#res small{display:block;opacity:.75}
+#vp{position:fixed;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top,0px) + 92px);touch-action:none;overflow:hidden;cursor:grab}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+svg#ln{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}svg path{fill:none;stroke:var(--line);stroke-width:3.5}
+.card{position:absolute;width:168px;height:74px;border:4px solid var(--u);border-radius:14px;background:var(--card);padding:5px 8px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;font-size:14px;line-height:1.2;overflow:hidden;cursor:pointer;user-select:none;-webkit-user-select:none}
+.card.m{border-color:var(--m);background:var(--mbg)}.card.f{border-color:var(--f);background:var(--fbg)}
+.card.sel{outline:6px solid var(--hi);outline-offset:3px}.card.pulse{animation:pl 1.2s 3}
+@keyframes pl{50%{outline:10px solid var(--hi)}}
+.card small{position:absolute;left:0;right:0;bottom:1px;font-size:10px;font-weight:normal;opacity:.75}
+.fm{position:absolute;right:2px;top:0;font-size:13px}
+.ring{position:absolute;width:30px;height:30px;border-radius:50%;background:var(--line);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px}
+.bdg{position:absolute;min-width:42px;height:30px;border-radius:15px;background:var(--hi);color:#1f2933;font-weight:bold;font-size:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--bg)}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--bar);border-top:3px solid var(--hi);border-radius:18px 18px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));max-height:62%;overflow:auto;display:none;box-shadow:0 -4px 18px rgba(0,0,0,.25)}
+#sheet h2{margin:0;font-size:1.15rem}#sheet p{margin:4px 0 8px;font-size:.9rem;opacity:.85}
+.in{width:100%;font:inherit;font-size:16px;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink);margin:6px 0}
+.bt{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.fam{font-size:.9rem;margin-top:6px}.fam div{padding:3px 0}.fam b{color:var(--m)}
+#menu{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.5);display:none;padding:calc(20px + env(safe-area-inset-top,0px)) 14px 20px}
+#menu>div{background:var(--bar);border-radius:16px;padding:14px;max-width:560px;margin:0 auto;max-height:100%;overflow:auto}
+textarea{width:100%;height:120px;font:12px monospace;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:10px}
+#help{position:fixed;left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:4;background:var(--bar);border:2px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13px;max-width:78%}
+</style></head><body>
+<div id="top"><h1>🌳 Mahole Chinodyaruswa Family Tree</h1>
+<div class="row"><input id="q" type="search" placeholder="Search any name…" autocomplete="off"><button id="bf">Fit</button><button id="bm">Mahole</button><button id="bp">＋</button><button id="bn">－</button><button id="bx">⋯</button></div><div id="res"></div></div>
+<div id="vp"><div id="world"><svg id="ln"></svg></div></div>
+<div id="help">Drag to move · Pinch to zoom · Tap a person · Tap <b style="background:var(--hi);color:#1f2933;border-radius:8px;padding:0 6px">+</b> to open a branch</div>
+<div id="sheet"></div>
+<div id="menu"><div><h2 style="margin:0 0 8px">Your tree</h2>
+<div class="bt"><button id="eo">Open every branch</button><button id="ec">Close all branches</button></div>
+<p style="font-size:.9rem">Your changes save on this device automatically. To keep a backup or move to another device, copy the text below and paste it back later.</p>
+<textarea id="js" spellcheck="false"></textarea>
+<div class="bt"><button id="cp" class="pri">Copy backup</button><button id="im">Restore from pasted text</button><button id="rs" class="dng">Reset to original</button><button id="cl">Close</button></div><p id="ms"></p></div></div>
 <script>
-let mode='photo', ctab='emoji';
-let items=[], scores={}, matchups=[], history=[], skipped=[];
-let currentM=0, doneCount=0, idCtr=0;
-const K=32, ELO0=1000;
-
-function pickMode(m) {
-  mode=m;
-  document.querySelectorAll('.mode-tile').forEach(t=>t.classList.toggle('on',t.dataset.mode===m));
-  ['photo','text','mixed','custom'].forEach(id=>{
-    document.getElementById('ui-'+id).style.display=id===m?'':'none';
-  });
+var DATA={"i":"393","n":"Chinodyaruswa Unknown","g":"m","l":"Mahole' great-great-grandfather","s":[],"k":[{"i":"392","n":"Tirivahwimi Unknown","g":"m","l":"Mahole' great-grandfather","s":[],"k":[{"i":"391","n":"Munyengetedzwa Unknown","g":"m","l":"Mahole' grandfather","s":[],"k":[{"i":"385","n":"Murambinda Unknown","g":"m","l":"Mahole' father","s":[{"i":"386","n":"VaShambadza Ndlovu","g":"f","l":"Mahole' mother","f":[]},{"i":"387","n":"Mai vaChibwe Unknown","g":"f","l":"Mahole' father's wife","f":[]},{"i":"388","n":"Mai vaMusemwa Unknown","g":"f","l":"Mahole' father's wife","f":[]},{"i":"389","n":"Mudzimai wepiri VaKondo","g":"f","l":"Mahole' father's wife","f":[]},{"i":"390","n":"Mudzimai wetatu Unknown","g":"f","l":"Mahole' father's wife","f":[]}],"k":[{"i":"376","n":"Mahole Chinodyaruswa","g":"m","l":"The subject of this report","s":[{"i":"377","n":"Agatha Tozvirewa Chinodyaruswa","g":"f","l":"Mahole' wife","f":[]},{"i":"378","n":"Ms. Unknown","g":"f","l":"Mahole' wife","f":[]}],"k":[{"i":"371","n":"Rambisa Mpofu","g":"f","l":"Mahole' daughter","s":[{"i":"372","n":"Mr. Takaedza","g":"m","l":"Mahole' son-in-law","f":[]}],"k":[{"i":"349","n":"Philip Takaedza","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0}],"w":1},{"i":"352","n":"Luke Takawira Muranbinda","g":"m","l":"Mahole' son","s":[{"i":"353","n":"Mai Teddy Unknown","g":"f","l":"Mahole' daughter-in-law","f":[]}],"k":[{"i":"256","n":"Catherine Takawira","g":"f","l":"Mahole' granddaughter","s":[{"i":"257","n":"Barnabas Mangava Makuvaro Mahara","g":"m","l":"Mahole' granddaughter's husband","f":[]},{"i":"258","n":"Edward Mabhuku Pongweni","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"97","n":"Portia Pongweni","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":1},{"i":"98","n":"Upenyu Edward Pongweni","g":"m","l":"Mahole' great-grandson","s":[{"i":"99","n":"Hazel Zimbasi","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"20","n":"Takura Pongweni","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"21","n":"Tamara Pongweni","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":1},{"i":"84","n":"Elphas Mahara","g":"m","l":"Mahole' great-grandson","s":[{"i":"85","n":"Ms. Mashongahande","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"2","n":"Mercy Mahara","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"3","n":"Clareta Mahara","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"4","n":"Kelvin Mahara","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"86","n":"Bernard Makuvaro","g":"m","l":"Mahole' great-grandson","s":[{"i":"87","n":"Grace Mpundu","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"5","n":"Brian Makuvaro","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"6","n":"Barnabas Makuvaro","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"7","n":"Beven Makuvaro","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"88","n":"Tinei Makuvaro","g":"m","l":"Mahole' great-grandson","s":[{"i":"89","n":"Winnet Gora","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"8","n":"Fadzai Makuvaro","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"90","n":"Shuvai Clara Mangava","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"91","n":"Mr. Unknown","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"9","n":"Locadia Unknown","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"10","n":"Gift Unknown","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"11","n":"Rhoda Unknown","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"12","n":"Liberty Unknown","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"92","n":"Vimbai Mahara","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"93","n":"Isaac Mkumba","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"13","n":"Marshal Mkumba","g":"m","l":"Mahole' great-great-grandson","s":[{"i":"14","n":"Ms. Unknown","g":"f","l":"Mahole' great-great-grandson's wife","f":[]}],"k":[],"w":0},{"i":"15","n":"Isaac Jnr Mkumba","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"94","n":"Edison Mahara","g":"m","l":"Mahole' great-grandson","s":[{"i":"95","n":"Runyararo Unknown","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"16","n":"Vimbai Mahara","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"17","n":"Catherine Mahara","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"18","n":"Makanaka Mahara","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"19","n":"Mr. Mahara","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"96","n":"Ngonidzashe Mahara","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"259","n":"Teddy Takawira","g":"m","l":"Mahole' grandson","s":[{"i":"260","n":"Ms. Unknown","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"100","n":"Tawanda Luke Takawira","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"101","n":"Maria Nyarai Takawira","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"102","n":"Martin Magomatema Vhundukai Takawira","g":"m","l":"Mahole' great-grandson","s":[{"i":"103","n":"Ms. Unknown","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"22","n":"Mellisa Margaret Takawira","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"23","n":"Rutendo Iris Takawira","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"24","n":"Teddy Cambion Jr Takawira","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"104","n":"Getrude Tamburai Takawira","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"105","n":"Rosemarry Yeukai Takawira","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"106","n":"Clara Sibongile Takawira","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"107","n":"Catherine Yanano Takawira","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"261","n":"Clara Mpofu","g":"f","l":"Mahole' granddaughter","s":[{"i":"262","n":"Dick Makarudze","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"108","n":"Gudhu Makarudze","g":"m","l":"Mahole' great-grandson","s":[{"i":"109","n":"Rumbidzai Mpinga Zirebwa","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"25","n":"Munashe Makarudze","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"26","n":"Panashe Makarudze","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"27","n":"Eustine Tinashe Makarudze","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"110","n":"Simeon Makarudze","g":"m","l":"Mahole' great-grandson","s":[{"i":"111","n":"Letenzia Ncube","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"28","n":"Tendai Makarudze","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"29","n":"Munyaradzi Makarudze","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"30","n":"Enviah Jnr Makarudze","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"31","n":"Nokhuthula Makarudze","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"32","n":"Junior Makarudze","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"33","n":"Ruvimbo Makarudze","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"112","n":"David Makarudze","g":"m","l":"Mahole' great-grandson","s":[{"i":"113","n":"Tinashe Ellen Nyabadza","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"34","n":"Bridget Makarudze","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"35","n":"Evelyn Junior Makarudze","g":"f","l":"Mahole' great-great-granddaughter","s":[{"i":"36","n":"Mr. Singwiza","g":"m","l":"Mahole' great-great-granddaughter's husband","f":[]}],"k":[{"i":"1","n":"Kunashe Singwiza","g":"m","l":"Mahole' great-great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"37","n":"Denver Makarudze","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"38","n":"Blessing Makarudze","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"114","n":"Evelyn Makarudze","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"115","n":"Enviah Makarudze","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"116","n":"Emmah Makarudze","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"117","n":"Edina Makarudze","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"118","n":"Lloyd Tichaonana Chidodo","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"39","n":"Mufaro Craig Chidodo","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"40","n":"Tinotenda Chidodo","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"41","n":"Kiara Chidodo","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0}],"w":0},{"i":"263","n":"Rosewitter Mpofu","g":"f","l":"Mahole' granddaughter","s":[{"i":"264","n":"Mr. Unknown","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"119","n":"Tariro Tavashure","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"120","n":"Tinashe Tavashure","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"121","n":"Solomon Tavashure","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"122","n":"Firiman Tavashure","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"123","n":"Charles Tavashure","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0}],"w":0},{"i":"354","n":"Borgia Muketiwa Chinodyaruswa","g":"m","l":"Mahole' son","s":[{"i":"355","n":"Sophia Pazira Dube","g":"f","l":"Mahole' daughter-in-law","f":[{"i":"398","n":"Mugwagwa Dube","l":"Sophia's father"},{"i":"399","n":"Apolonia Unknown","l":"Sophia's mother"}]},{"i":"356","n":"Lucia Gwemba","g":"f","l":"Mahole' daughter-in-law","f":[]}],"k":[{"i":"265","n":"Locadia Murambinda","g":"f","l":"Mahole' granddaughter","s":[{"i":"266","n":"Isaac Zingalume","g":"m","l":"Mahole' granddaughter's husband","f":[{"i":"414","n":"Abraham Zingalume","l":"Isaac's father"}]},{"i":"267","n":"Khefasi Gandi","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"124","n":"Kudakwashe Zingalume","g":"m","l":"Mahole' great-grandson","s":[{"i":"125","n":"Lindiwe Mudzingwa","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"42","n":"Christabel Zingalume","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"43","n":"Monalisa Zingalume","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"44","n":"Hazel Zingalume","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"45","n":"Marshall Zingalume","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"126","n":"Taurai Zingalume","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"127","n":"Esnath Zingalume","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"128","n":"Ellen Zingalume","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"129","n":"Comfort Zingalume","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"130","n":"Patience Gandi","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":1}],"w":0},{"i":"268","n":"Ephraim Munhamo Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"269","n":"Thokozani Mlambo","g":"f","l":"Mahole' grandson's wife","f":[{"i":"412","n":"Chanyuka Luke Mlambo","l":"Thokozani's father"},{"i":"413","n":"Annie Mlambo Chinzoukwanga Sithole","l":"Thokozani's mother"}]}],"k":[{"i":"131","n":"Joan Evelyn Munhamo Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"132","n":"Farai Chidongo","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"46","n":"Chiedza Michelle Chidongo","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"47","n":"Tawana Chidongo","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"133","n":"Borgia Brian Mpofu","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"270","n":"Francisca Tarisai Mpofu","g":"f","l":"Mahole' granddaughter","s":[{"i":"271","n":"Mr. Hware","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"134","n":"Nyaradzo Hware","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"135","n":"Mr. Kabala","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"48","n":"Vanessa Kabala","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"49","n":"Russell Kabala","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"50","n":"Enneiss Kabala","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"51","n":"Taral Kabala","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"52","n":"Tyrrel Kabala","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"136","n":"Vimbai Hware","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"137","n":"Mr. Mohamadi","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"53","n":"Lee-Anne Mohamadi","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"54","n":"Aisha Mohamadi","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"55","n":"El-Shammar Mohamadi","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"138","n":"Brendon Tawedzerwa Mpofu","g":"m","l":"Mahole' great-grandson","s":[{"i":"139","n":"Shalin Tinarwo","g":"f","l":"Mahole' great-grandson's wife","f":[{"i":"429","n":"Dennis Tinarwo","l":"Shalin's father"},{"i":"430","n":"Locadia Nyikadzino","l":"Shalin's mother"}]}],"k":[{"i":"56","n":"Keith Mpofu","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":-1}],"w":0}],"w":0},{"i":"272","n":"Alois Simbarashe Mpofu","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0},{"i":"273","n":"Cletus Mpofu","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0},{"i":"274","n":"Christina Tichaeva Mpofu","g":"f","l":"Mahole' granddaughter","s":[{"i":"275","n":"Mr. Rondozai","g":"m","l":"Mahole' granddaughter's husband","f":[]},{"i":"276","n":"Mr. Unknown","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"141","n":"Tadiwanashe Nyasha Rondozai","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"140","n":"Varaidzo Rondozai","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"283","n":"Costa Tapiwa Chinodyaruswa","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":1},{"i":"284","n":"Luke Chinodyaruswa","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":1},{"i":"285","n":"Eddy Tobaiwa Chinodyaruswa","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":1},{"i":"286","n":"Shuvai Getrude Chinodyaruswa","g":"f","l":"Mahole' granddaughter","s":[],"k":[],"w":1},{"i":"287","n":"Irene Muchaneta Chinodyaruswa","g":"f","l":"Mahole' granddaughter","s":[],"k":[],"w":1},{"i":"288","n":"Elizabeth Chinodyaruswa","g":"f","l":"Mahole' granddaughter","s":[],"k":[],"w":1},{"i":"277","n":"Monika Mpofu","g":"f","l":"Mahole' granddaughter","s":[{"i":"278","n":"Felix Ncube","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"142","n":"Martha Unknown","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"279","n":"Constancia Mkitiwa","g":"f","l":"Mahole' granddaughter","s":[{"i":"280","n":"Kefasi Gandi","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"143","n":"Cosmas Kudakwashe Sibanda","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"144","n":"Nkosinathi Gandi","g":"m","l":"Mahole' great-grandson","s":[{"i":"145","n":"Shiella Kufazvineyi","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"57","n":"Progress Gandi","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"58","n":"Chengetai Gandi","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"59","n":"Advocate Gandi","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"60","n":"Melissa Gandi","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"146","n":"Benjamini Gandi","g":"m","l":"Mahole' great-grandson","s":[{"i":"147","n":"Siphathisiwe Fanyana","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"61","n":"Blessmore Benjamin Gandi","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"62","n":"Adeline Gandi","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"63","n":"Bright Takudzwa Gandi","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"148","n":"Patricia Gandi","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"149","n":"Soneni Sibanda","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"150","n":"Concilia Tendai Gandi","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"281","n":"Clothilda Mpofu","g":"f","l":"Mahole' granddaughter","s":[{"i":"282","n":"Mr. Unknown","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"151","n":"Munyaradzi Unknown","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"152","n":"Cleopas Unknown","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"153","n":"Takunda Unknown","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"154","n":"Nyarai Unknown","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0}],"w":0},{"i":"357","n":"Veronica Tsindirai Mpofu","g":"f","l":"Mahole' daughter","s":[{"i":"358","n":"Cosmas Sifile Magomo","g":"m","l":"Mahole' son-in-law","f":[]}],"k":[{"i":"289","n":"James Jackson Magomo","g":"m","l":"Mahole' grandson","s":[{"i":"290","n":"Margaret Mwale","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"155","n":"Tendai Magomo","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"156","n":"Zivanai Alexander Magomo","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"157","n":"Gerald Ranganai Magomo","g":"m","l":"Mahole' great-grandson","s":[{"i":"158","n":"Fortunate Chipazura","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"64","n":"Junior Anesuishe Magomo","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"65","n":"Joseph Anenyasha Magomo","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"66","n":"Julian Anopaishe Magomo","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"159","n":"Sarudzai Petronela Magomo","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"160","n":"Fadzai Fortunate Magomo","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"291","n":"David Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"292","n":"Tracy Zinyemba","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"161","n":"Puwai Mpofu","g":"m","l":"Mahole' great-grandson","s":[{"i":"162","n":"Linah Mpofu","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"67","n":"Ariko Mpofu","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"163","n":"Kudakwashe Bethel Mpofu","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"164","n":"Rumbidzai Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"165","n":"Tsitsi Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"293","n":"John Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"294","n":"Viliosa Manhovo","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"166","n":"Sandra Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"167","n":"Mr. Unknown","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"68","n":"Dorothy Tadiwanashe Mangadza","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"168","n":"Isabel Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"295","n":"Felix Corbett Magomo","g":"m","l":"Mahole' grandson","s":[{"i":"296","n":"Ms. Unknown","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"169","n":"Evidence Magomo","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"170","n":"Essence Magomo","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"171","n":"Liberty Corbett Magomo","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"172","n":"Lyster Magomo","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"173","n":"Unity Magomo","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"174","n":"Nelson Marengu","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"69","n":"Prince Marengu","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"70","n":"Praise Marengu","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"71","n":"Anotidaishe Marengu","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0}],"w":0}],"w":0},{"i":"359","n":"Birito Tovigepi Murambimda","g":"m","l":"Mahole' son","s":[{"i":"360","n":"Leticia Chipangura","g":"f","l":"Mahole' daughter-in-law","f":[]}],"k":[{"i":"297","n":"Apolonia Murambinda","g":"f","l":"Mahole' granddaughter","s":[],"k":[],"w":0},{"i":"298","n":"Brito Munhamo Tovigepi","g":"m","l":"Mahole' grandson","s":[{"i":"299","n":"Lucy Chipiwa Macharaga","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"175","n":"Rungano Justice Tovigepi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"177","n":"Gracian Tovigepi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"176","n":"John Rutendo Tovigepi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"301","n":"Argatha Tovigepi","g":"f","l":"Mahole' granddaughter","s":[{"i":"302","n":"Mr. Mugwisi","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"178","n":"Nicodem Mugwisi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"179","n":"Brain Mugwisi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"180","n":"Evance Mugwisi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"181","n":"Alfreda Mugwisi","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"305","n":"John Tovigepi","g":"m","l":"Mahole' grandson","s":[{"i":"306","n":"Theresa Mapani","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"183","n":"Trynos Tovigepi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"184","n":"Elvis Tovigepi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"185","n":"Brenda Tovigepi","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"186","n":"Wiseman Tovigepi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"300","n":"Regina Murambinda","g":"f","l":"Mahole' granddaughter","s":[],"k":[],"w":0},{"i":"303","n":"Graciano Murambinda","g":"m","l":"Mahole' grandson","s":[{"i":"304","n":"Ms. Unknown","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"182","n":"Gracious Tovigepi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0}],"w":0},{"i":"361","n":"Maria Mhovai Mungofa","g":"f","l":"Mahole' daughter","s":[{"i":"362","n":"Adolf Mungofa","g":"m","l":"Mahole' son-in-law","f":[]}],"k":[{"i":"307","n":"Claudia Mungofa","g":"f","l":"Mahole' granddaughter","s":[],"k":[],"w":0},{"i":"308","n":"Ignatsia Mungofa","g":"f","l":"Mahole' granddaughter","s":[],"k":[],"w":0},{"i":"309","n":"Sir Phillip Jairai Mungofa","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0},{"i":"310","n":"Aleta Royayi Mungofa","g":"f","l":"Mahole' granddaughter","s":[],"k":[],"w":0},{"i":"311","n":"Robert Dzikamai Mungofa","g":"m","l":"Mahole' grandson","s":[{"i":"312","n":"Judith Chiname","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"187","n":"Shamiso Amanda Mungofa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"188","n":"Tashinga Monalisa Mungofa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"189","n":"Tadiwanashe Shanice Mungofa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"190","n":"Tapiwanashe Shamilla Mungofa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"191","n":"Tawananyasha Mungofa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0}],"w":0},{"i":"363","n":"Johanis Dzimbanhete Murambinda","g":"m","l":"Mahole' son","s":[],"k":[],"w":0},{"i":"364","n":"Martin Makombe Chinodyaruswa","g":"m","l":"Mahole' son","s":[{"i":"365","n":"Regina Sani Dube","g":"f","l":"Mahole' daughter-in-law","f":[{"i":"396","n":"Star Dube","l":"Regina's father"},{"i":"397","n":"Gogo Mantini Unknown","l":"Regina's mother"}]},{"i":"366","n":"Ms. Unknown","g":"f","l":"Mahole' daughter-in-law","f":[]}],"k":[{"i":"330","n":"Maria Chinodyaruswa","g":"f","l":"Mahole' granddaughter","s":[{"i":"331","n":"Mr. Mthunzi","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"230","n":"Setty Mthunzi","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"231","n":"Vusumuzi Mthunzi","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"232","n":"Privilege Mthunzi","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":1},{"i":"313","n":"Maggie Rita Mpofu","g":"f","l":"Mahole' granddaughter","s":[{"i":"314","n":"James Sibanda","g":"m","l":"Mahole' granddaughter's husband","f":[{"i":"405","n":"Sibangilizwe Mashakada Nguwo","l":"James' father"}]}],"k":[{"i":"192","n":"Bond Tagwireyi Sibanda","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"193","n":"Summerset Sibanda","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"194","n":"Caroline Sibanda","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"195","n":"Mr. Unknown","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"72","n":"Julia Sibanda","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"196","n":"Summerview Sibanda","g":"m","l":"Mahole' great-grandson","s":[{"i":"197","n":"Linah Munenge","g":"f","l":"Mahole' great-grandson's wife","f":[{"i":"427","n":"Norman Munenge","l":"Linah's father"},{"i":"428","n":"Maria Mwembe","l":"Linah's mother"}]},{"i":"198","n":"Saliwe Masukume","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"76","n":"Christian Munashe Sibanda","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":1},{"i":"73","n":"Christina Cipo Sibanda","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"74","n":"Christos Allan Sibanda","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"75","n":"Christen Marvel Sibanda","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"199","n":"Petronella Sibanda","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"200","n":"Tatenda Sibanda","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"201","n":"Andrew Sibanda","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"202","n":"Plaxedes Sibanda","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"315","n":"Regis Zvinopera Mahole","g":"m","l":"Mahole' grandson","s":[{"i":"316","n":"Eugenia Tsitsi Macheka","g":"f","l":"Mahole' grandson's wife","f":[{"i":"402","n":"Cornelious Chishanu Gavhera","l":"Eugenia's father"},{"i":"403","n":"Jane Chitsvatsva","l":"Eugenia's mother"}]}],"k":[{"i":"203","n":"Makombe Kudakwashe Chinodyaruswa","g":"m","l":"Mahole' great-grandson","s":[{"i":"204","n":"Ms. Unknown","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[{"i":"77","n":"Tsitsi Tapiwanashe Chinodyaruswa","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"205","n":"Tonderai Chinodyaruswa","g":"m","l":"Mahole' great-grandson","s":[{"i":"206","n":"Kimberley Maria Storme Julia Davison","g":"f","l":"Mahole' great-grandson's wife","f":[]}],"k":[],"w":0}],"w":0},{"i":"317","n":"Oscar Tirivangani Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"318","n":"Lethiwe Nyathi","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"207","n":"Vimbai Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"208","n":"Beatrice Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"209","n":"Wadzanayi Chinodyaruswa","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"210","n":"Munatsi Chinodyaruswa","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"211","n":"Rita Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"212","n":"Fanuel Chipuve","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"78","n":"Lebron Destiny Chipuve","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"213","n":"Ruth Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"214","n":"Auxilia Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"319","n":"Tsinda Chinodyaruswa","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0},{"i":"320","n":"Rumbidzai Margeret Shoko","g":"f","l":"Mahole' granddaughter","s":[{"i":"321","n":"Kenasi Mutshimbili Shoko","g":"m","l":"Mahole' granddaughter's husband","f":[{"i":"404","n":"Ms. Unknown","l":"Kenasi's mother"}]}],"k":[{"i":"215","n":"Talent Kudzai Shoko","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"216","n":"Telma Tshifhiwa Shoko","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"217","n":"Tracy Tshinakaho Shoko","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"218","n":"Terrence Rudzani Shoko","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"219","n":"Talbert Tondani Shoko","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"220","n":"Teudilous Tyrone Livhuwani Shoko","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"322","n":"Renato Chinodyaruswa","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0},{"i":"323","n":"Dismas Kudakwashe Chinodyaruswa","g":"m","l":"Mahole' grandson","s":[{"i":"324","n":"Mrs Tsungai Chatira","g":"f","l":"Mahole' grandson's wife","f":[{"i":"415","n":"Faith Dube","l":"Tsungai's niece"},{"i":"416","n":"Bekimpilo Chatira","l":"Tsungai's brother"},{"i":"417","n":"Annah Chatira","l":"Tsungai's sister"},{"i":"418","n":"Mr. Unknown","l":"Tsungai's brother-in-law"},{"i":"419","n":"Zorodzai Chatira","l":"Tsungai's sister"},{"i":"420","n":"Sithulisiwe Chatira","l":"Tsungai's sister"},{"i":"421","n":"Simangaliso Chatira","l":"Tsungai's brother"},{"i":"422","n":"Onias Chatira","l":"Tsungai's brother"},{"i":"423","n":"Williams Chatira","l":"Tsungai's brother"},{"i":"424","n":"Evenly Chatira","l":"Tsungai's sister"},{"i":"425","n":"Mabvongodze Chatira","l":"Tsungai's father"},{"i":"426","n":"Ketina Maposa","l":"Tsungai's mother"}]},{"i":"325","n":"Tambudzani Ndlovu","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"226","n":"Bongani Chinodyaruswa","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":1},{"i":"221","n":"Khonzani Blessings Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"222","n":"Kudakwashe Mhondiwa","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"79","n":"Chloe Panashe Mhondiwa","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"223","n":"Regina Rutendo Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"224","n":"Racheal Mutsawashe Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"225","n":"Kudakwashe Dismus Chinodyaruswa Jr.","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"326","n":"Novatus Tiriguva Chinodyaruswa","g":"m","l":"Mahole' grandson","s":[{"i":"327","n":"Nyaradzo Rachel Ruswa","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"227","n":"Masimbaashe Chinodyaruswa","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"228","n":"Munashe Chinodyaruswa","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"328","n":"Owen Mativenga Chinodyaruswa","g":"m","l":"Mahole' grandson","s":[{"i":"329","n":"Letwin Chibvongdze","g":"f","l":"Mahole' grandson's wife","f":[{"i":"406","n":"Caleb Chibvongodze","l":"Letwin's father"},{"i":"407","n":"Sylvia Matsvai","l":"Letwin's mother"},{"i":"408","n":"Julias Chibvongodze","l":"Letwin's grandfather"},{"i":"409","n":"Vaolet Badze","l":"Letwin's grandmother"},{"i":"410","n":"Farastan Matsvai","l":"Letwin's grandfather"},{"i":"411","n":"Faith Mutikinya","l":"Letwin's grandmother"}]}],"k":[{"i":"229","n":"Karen Chinodyaruswa","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0}],"w":0,"o":1},{"i":"367","n":"Chrispen Tamai Mpofu","g":"m","l":"Mahole' son","s":[{"i":"368","n":"Lucia Esther Moyo","g":"f","l":"Mahole' daughter-in-law","f":[{"i":"394","n":"Tuesday Moyo","l":"Lucia's father"},{"i":"395","n":"Mbuya Sithole","l":"Lucia's mother"}]}],"k":[{"i":"332","n":"Christopher Takaendesa Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"333","n":"Maria Mabulesi","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"233","n":"Tendai Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"234","n":"Hussein Sanudi","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"80","n":"Aayisha Sanudi","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0},{"i":"81","n":"Alishah Sanudi","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"235","n":"Fungai Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"236","n":"Crispen Mpofu","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"237","n":"Lucia Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"238","n":"Gladys Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"334","n":"Andrew Mpofu","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0},{"i":"335","n":"Tuzinde Tafireyi Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"336","n":"Rabecca Memory Kunodziya","g":"f","l":"Mahole' grandson's wife","f":[{"i":"400","n":"Damasco Kunodziya","l":"Rabecca's father"},{"i":"401","n":"Ellen Dera","l":"Rabecca's mother"}]}],"k":[{"i":"239","n":"Esther Ruvarashe Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"240","n":"Tumayi Rururamo Mpofu","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"241","n":"Tamayi Ruraramo Mpofu","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"337","n":"Antony Tinago Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"338","n":"Thembeni Mlilo","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"242","n":"Darlington Mpofu","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0}],"w":0},{"i":"339","n":"Murambinda Sylvester Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"340","n":"Ratidzai Tenunga","g":"f","l":"Mahole' grandson's wife","f":[]},{"i":"341","n":"Mai Ropa Unknown","g":"u","l":"Mahole' grandson's partner","f":[]}],"k":[{"i":"243","n":"Clive Anesu Mpofu","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"246","n":"Ropafadzo Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":1},{"i":"244","n":"Christabel Nyaradzo Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0},{"i":"245","n":"Clorita Clara Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"342","n":"XXX Mpofu","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0},{"i":"343","n":"Nyaradzo Netsai Mpofu","g":"f","l":"Mahole' granddaughter","s":[{"i":"344","n":"Mr. Unknown","g":"m","l":"Mahole' granddaughter's husband","f":[]},{"i":"345","n":"Mr. Chikuva","g":"m","l":"Mahole' granddaughter's husband","f":[]}],"k":[{"i":"247","n":"Patience Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[{"i":"248","n":"Mr. Mapolisa","g":"m","l":"Mahole' great-granddaughter's husband","f":[]}],"k":[{"i":"82","n":"Kunashe Mapolisa","g":"m","l":"Mahole' great-great-grandson","s":[],"k":[],"w":0},{"i":"83","n":"Karen Mapolisa","g":"f","l":"Mahole' great-great-granddaughter","s":[],"k":[],"w":0}],"w":0},{"i":"249","n":"Enerst Mukuva","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":1},{"i":"250","n":"Tafadzwa Mukuva","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":1},{"i":"251","n":"Esther Partionate Mukuva","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":1},{"i":"252","n":"Rutendo Mukuva","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":1}],"w":0},{"i":"346","n":"Shingirirayi Mpofu","g":"m","l":"Mahole' grandson","s":[],"k":[],"w":0}],"w":0},{"i":"369","n":"Oralia Haruperi Mpofu","g":"f","l":"Mahole' daughter","s":[{"i":"370","n":"Ben Bhebhe","g":"m","l":"Mahole' son-in-law","f":[]}],"k":[{"i":"347","n":"Emmanuel Mpofu","g":"m","l":"Mahole' grandson","s":[{"i":"348","n":"Enviolata Sarudzai Mhere","g":"f","l":"Mahole' grandson's wife","f":[]}],"k":[{"i":"253","n":"Leeroy Tanaka Mpofu","g":"m","l":"Mahole' great-grandson","s":[],"k":[],"w":0},{"i":"254","n":"Leeyan Emaculate Mpofu","g":"f","l":"Mahole' great-granddaughter","s":[],"k":[],"w":0}],"w":0}],"w":0}],"w":0,"o":1},{"i":"379","n":"Chibwe Unknown","g":"m","l":"Mahole' half-brother","s":[{"i":"380","n":"Ms. Unknown","g":"f","l":"Mahole' sister-in-law","f":[]}],"k":[{"i":"373","n":"Matambo Unknown","g":"m","l":"Mahole' nephew","s":[],"k":[],"w":0},{"i":"374","n":"Ben Mushonga Chikunguru","g":"m","l":"Mahole' nephew","s":[{"i":"375","n":"Ms. Unknown","g":"f","l":"Mahole' nephew's wife","f":[]}],"k":[{"i":"350","n":"Alleta Chikunguru","g":"f","l":"Mahole' great-niece","s":[{"i":"351","n":"Mr. Unknown","g":"m","l":"Mahole' great-niece's husband","f":[]}],"k":[{"i":"255","n":"Nosipho Hadebe","g":"f","l":"Mahole' great-great-niece","s":[],"k":[],"w":0}],"w":0}],"w":0}],"w":1},{"i":"381","n":"Musemwa Unknown","g":"m","l":"Mahole' half-brother","s":[],"k":[],"w":2},{"i":"382","n":"Kisi Murambinda","g":"f","l":"Mahole' half-sister","s":[{"i":"383","n":"Mr. Zuze","g":"m","l":"Mahole' brother-in-law","f":[]}],"k":[],"w":3},{"i":"384","n":"Musemwa Unknown","g":"m","l":"Mahole' half-brother","s":[],"k":[],"w":4}],"w":-1,"o":1}],"w":-1,"o":1}],"w":-1,"o":1}],"o":1};
+var CW=168,CH=74,SG=36,HG=24,VG=76,KEY='mahole_tree_v3',uid=1,T,sel=null,sv=null,pos={},par={},byId={},tx=20,ty=20,sc=.8,flag=false;
+function ld(){try{var s=localStorage.getItem(KEY);if(s)return JSON.parse(s)}catch(e){}return JSON.parse(JSON.stringify(DATA))}
+function sv_(){try{localStorage.setItem(KEY,JSON.stringify(T))}catch(e){}}
+T=ld();
+var $=function(i){return document.getElementById(i)},W=$('world'),L=$('ln'),VP=$('vp');
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function uw(n){return (1+n.s.length)*CW+n.s.length*SG}
+function ax(n){return n.s.length?CW+SG/2:CW/2}
+function lay(n,d){n._d=d;n._ks=(n.o&&n.k.length)?n.k:[];var w=uw(n),sum=0;n._ks.forEach(function(k){sum+=lay(k,d+1)});if(n._ks.length)sum+=(n._ks.length-1)*HG;n._sw=Math.max(w,sum);return n._sw}
+function plc(n,left){var w=uw(n),ks=n._ks;if(ks.length){var t=0;ks.forEach(function(k){t+=k._sw});t+=(ks.length-1)*HG;var x=left+(n._sw-t)/2;ks.forEach(function(k){plc(k,x);x+=k._sw+HG});var c=(ks[0]._x+ks[ks.length-1]._x)/2+CW/2-ax(n);n._x=Math.max(left,Math.min(left+n._sw-w,c))}else n._x=left+(n._sw-w)/2;n._y=n._d*(CH+VG)+20}
+function idx(n,p){byId[n.i]={n:n,sp:null,p:p};n.s.forEach(function(s,j){byId[s.i]={n:n,sp:s,j:j,p:p}});n.k.forEach(function(k){idx(k,n)})}
+function card(x,y,o,cls,id,small,fam){var d=document.createElement('div');d.className='card '+cls+(sel===id?' sel':'');d.id='c'+id;d.dataset.id=id;d.style.left=x+'px';d.style.top=y+'px';d.innerHTML=esc(o.n)+(small?'<small>'+esc(small)+'</small>':'')+(fam&&fam.length?'<span class="fm">👪</span>':'');W.appendChild(d);return d}
+function render(){W.querySelectorAll('.card,.ring,.bdg').forEach(function(e){e.remove()});byId={};idx(T,null);lay(T,0);plc(T,20);var mx=0,my=0,P='';pos={};
+function dr(n){var w=uw(n),ks=n._ks;pos[n.i]={x:n._x,y:n._y};
+ var small=null;if(n._par&&n._par.s.length>1&&n.w>=0)small='with '+n._par.s[n.w].n.split(' ')[0];
+ card(n._x,n._y,n,n.g,n.i,small,n.f);
+ n.s.forEach(function(s,j){var sx=n._x+(j+1)*(CW+SG);pos[s.i]={x:sx,y:n._y};card(sx,n._y,s,s.g,s.i,null,s.f);
+  P+='M'+(sx-SG)+' '+(n._y+CH/2)+'H'+sx;var r=document.createElement('div');r.className='ring';r.style.left=(sx-SG/2-15)+'px';r.style.top=(n._y+CH/2-15)+'px';r.textContent='💍';W.appendChild(r)});
+ mx=Math.max(mx,n._x+w);my=Math.max(my,n._y+CH+60);
+ if(n.k.length){var a=n._x+ax(n),by=n._y+CH+VG/2,b=document.createElement('div');b.className='bdg';b.dataset.t=n.i;b.style.left=(a-21)+'px';b.style.top=(n._y+CH+3)+'px';b.textContent=n.o?'−':'+'+n.k.length;W.appendChild(b);
+  if(ks.length){P+='M'+a+' '+(n._y+CH+30)+'V'+by;var lo=a,hi=a;ks.forEach(function(k){var c=k._x+CW/2;lo=Math.min(lo,c);hi=Math.max(hi,c);P+='M'+c+' '+by+'V'+k._y});P+='M'+lo+' '+by+'H'+hi;ks.forEach(dr)}}}
+function mk(n,p){n._par=p;n.k.forEach(function(k){mk(k,n)})}mk(T,null);dr(T);
+L.innerHTML='<path d="'+P+'"/>';L.setAttribute('width',mx+40);L.setAttribute('height',my+40);W.style.width=(mx+40)+'px';W.style.height=(my+40)+'px';ap()}
+function ap(){W.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'}
+function vw(){return VP.clientWidth}function vh(){return VP.clientHeight}
+function ctr(id,s){var p=pos[id];if(!p)return;if(s)sc=s;tx=vw()/2-(p.x+CW/2)*sc;ty=vh()/3-(p.y+CH/2)*sc;ap()}
+function fit(){var mx=0,my=0;for(var k in pos){mx=Math.max(mx,pos[k].x+CW);my=Math.max(my,pos[k].y+CH)}sc=Math.max(.12,Math.min(1,Math.min((vw()-30)/(mx+40),(vh()-30)/(my+40))));tx=(vw()-mx*sc)/2;ty=15;ap()}
+function zoom(f,cx,cy){var n=Math.max(.12,Math.min(1.8,sc*f));cx=cx==null?vw()/2:cx;cy=cy==null?vh()/2:cy;tx=cx-(cx-tx)*(n/sc);ty=cy-(cy-ty)*(n/sc);sc=n;ap()}
+/* gestures */
+var pt={},st=null,pd=0;
+VP.addEventListener('pointerdown',function(e){pt[e.pointerId]={x:e.clientX,y:e.clientY};flag=false;st={x:e.clientX,y:e.clientY,tx:tx,ty:ty};var k=Object.keys(pt);if(k.length==2){var a=pt[k[0]],b=pt[k[1]];pd=Math.hypot(a.x-b.x,a.y-b.y)}});
+addEventListener('pointermove',function(e){if(!pt[e.pointerId])return;pt[e.pointerId]={x:e.clientX,y:e.clientY};var k=Object.keys(pt),r=VP.getBoundingClientRect();
+ if(k.length==2){var a=pt[k[0]],b=pt[k[1]],d=Math.hypot(a.x-b.x,a.y-b.y);if(pd){zoom(d/pd,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top)}pd=d;flag=true}
+ else if(st){var dx=e.clientX-st.x,dy=e.clientY-st.y;if(flag||Math.abs(dx)+Math.abs(dy)>8){flag=true;tx=st.tx+dx;ty=st.ty+dy;ap()}}});
+function up(e){delete pt[e.pointerId];pd=0;st=null;var k=Object.keys(pt);if(k.length==1)st={x:pt[k[0]].x,y:pt[k[0]].y,tx:tx,ty:ty};setTimeout(function(){if(!Object.keys(pt).length)flag=false},60)}
+addEventListener('pointerup',up);addEventListener('pointercancel',up);
+VP.addEventListener('wheel',function(e){e.preventDefault();var r=VP.getBoundingClientRect();zoom(e.deltaY<0?1.12:.89,e.clientX-r.left,e.clientY-r.top)},{passive:false});
+W.addEventListener('click',function(e){if(flag)return;var b=e.target.closest('.bdg');if(b){var o=byId[b.dataset.t].n;o.o=o.o?0:1;sv_();var p=pos[o.i];render();return}var c=e.target.closest('.card');if(c)pick(c.dataset.id)});
+/* sheet */
+function nameOf(id){var o=byId[id];return o?(o.sp||o.n).n:''}
+function pick(id,hl){sel=id;render();sh(id,hl)}
+function sh(id,hl){var o=byId[id];if(!o){return}var isS=!!o.sp,p=o.sp||o.n,n=o.n,h='<h2>'+esc(p.n)+'</h2><p>';
+ if(isS)h+='Married to <b>'+esc(n.n)+'</b>';
+ else if(o.p){var q=o.p,t=q.n;if(n.w>=0&&q.s[n.w])t+=' &amp; '+esc(q.s[n.w].n);h+='Child of <b>'+(n.w>=0&&q.s[n.w]?esc(q.n)+' &amp; '+esc(q.s[n.w].n):esc(q.n))+'</b>'}
+ else h+='Oldest person on this tree';
+ if(!isS&&n.s.length)h+='<br>Married to <b>'+n.s.map(function(s){return esc(s.n)}).join('</b> and <b>')+'</b>';
+ if(!isS&&n.k.length)h+='<br>'+n.k.length+' child'+(n.k.length>1?'ren':'');
+ h+='</p><input class="in" id="nm" value="'+esc(p.n)+'"><div class="bt"><button class="pri" id="sn">Save name</button>';
+ h+='<button id="ac">＋ Add child</button>'+(isS?'':'<button id="as">＋ Add husband/wife</button>');
+ if(!isS&&n.k.length)h+='<button id="tg">'+(n.o?'Close branch':'Open branch')+'</button>';
+ h+=(o.p||isS?'<button class="dng" id="dl">Delete'+(isS?'':' person &amp; branch')+'</button>':'')+'<button id="cs">Close</button></div><div id="fm2"></div>';
+ if(p.f&&p.f.length){h+='<div class="fam"><b>Family of '+esc(p.n)+':</b>';p.f.forEach(function(x){h+='<div'+(hl==x.i?' style="background:var(--hi);color:#1f2933;border-radius:6px;padding:3px 6px"':'')+'><b>'+esc(x.n)+'</b> — '+esc(x.l)+'</div>'});h+='</div>'}
+ var S=$('sheet');S.innerHTML=h;S.style.display='block';sv=id;
+ $('sn').onclick=function(){var v=$('nm').value.trim();if(v){p.n=v;sv_();render();sh(id)}};
+ $('cs').onclick=function(){S.style.display='none';sel=null;render()};
+ if($('tg'))$('tg').onclick=function(){n.o=n.o?0:1;sv_();render();sh(id)};
+ $('ac').onclick=function(){form(function(nm,g){var w=isS?o.j:-1;n.k.push({i:'x'+(++uid)+Date.now(),n:nm,g:g,l:'Added by you',s:[],k:[],w:w,f:[]});n.o=1;sv_();render();ctr(n.k[n.k.length-1].i);sh(n.k[n.k.length-1].i)},isS?'Add a child of '+p.n+' and '+n.n:'Add a child of '+p.n)};
+ if($('as'))$('as').onclick=function(){form(function(nm,g){n.s.push({i:'x'+(++uid)+Date.now(),n:nm,g:g,l:'Added by you',f:[]});sv_();render();sh(id)},'Add a husband or wife for '+p.n,1)};
+ if($('dl'))$('dl').onclick=function(){if(!confirm('Delete '+p.n+(isS||!n.k.length?'':' and everyone below them')+'?'))return;
+  if(isS){var j=o.j;n.s.splice(j,1);n.k.forEach(function(k){if(k.w==j)k.w=-1;else if(k.w>j)k.w--})}else{o.p.k.splice(o.p.k.indexOf(n),1)}
+  sv_();$('sheet').style.display='none';sel=null;render()};
 }
-
-document.getElementById('fi-photo').addEventListener('change',e=>{handleFiles(Array.from(e.target.files),'photo');e.target.value='';});
-document.getElementById('fi-mixed').addEventListener('change',e=>{handleFiles(Array.from(e.target.files),'mixed');e.target.value='';});
-
-async function handleFiles(files,type){
-  for(const f of files){
-    const src=await toB64(f);
-    const label=f.name.replace(/\.[^.]+$/,'');
-    push({type,src,label,emoji:null});
-  }
-}
-function toB64(f){return new Promise(r=>{const rd=new FileReader();rd.onload=e=>r(e.target.result);rd.readAsDataURL(f);});}
-
-document.getElementById('ti-text').addEventListener('keydown',e=>{if(e.key==='Enter')addText();});
-function addText(){const v=document.getElementById('ti-text').value.trim();if(!v)return;push({type:'text',src:null,label:v,emoji:'💬'});document.getElementById('ti-text').value='';}
-
-document.getElementById('ti-mixed').addEventListener('keydown',e=>{if(e.key==='Enter')addMixedText();});
-function addMixedText(){const v=document.getElementById('ti-mixed').value.trim();if(!v)return;push({type:'text',src:null,label:v,emoji:'📝'});document.getElementById('ti-mixed').value='';}
-
-document.getElementById('ci-text').addEventListener('keydown',e=>{if(e.key==='Enter')addCustom();});
-function addCustom(){
-  const label=document.getElementById('ci-text').value.trim();if(!label)return;
-  const emoji=ctab==='emoji'?(document.getElementById('ci-emoji').value.trim()||'🔷'):null;
-  push({type:'custom',src:null,label,emoji});
-  document.getElementById('ci-text').value='';document.getElementById('ci-emoji').value='';
-}
-function setCtab(t){
-  ctab=t;
-  document.getElementById('tp-emoji').classList.toggle('on',t==='emoji');
-  document.getElementById('tp-plain').classList.toggle('on',t==='plain');
-  document.getElementById('ci-emoji').style.display=t==='emoji'?'':'none';
-}
-
-function push(item){
-  item.id='I'+(++idCtr);items.push(item);scores[item.id]=ELO0;
-  renderList();updateBtn();
-}
-function removeItem(id){
-  items=items.filter(i=>i.id!==id);delete scores[id];renderList();updateBtn();
-}
-function renderList(){
-  const list=document.getElementById('ilist');
-  document.getElementById('cnt').textContent=items.length;
-  list.innerHTML='';
-  items.forEach((item,idx)=>{
-    const row=document.createElement('div');row.className='item-row';
-    const th=item.src?`<img class="i-thumb" src="${item.src}" alt="">`:`<div class="i-box">${item.emoji||'📝'}</div>`;
-    row.innerHTML=`${th}<div class="i-info"><div class="i-name">${x(item.label)}</div><div class="i-meta">#${idx+1} · ${item.type}</div></div><button class="i-del" onclick="removeItem('${item.id}')">✕</button>`;
-    list.appendChild(row);
-  });
-}
-function updateBtn(){
-  const btn=document.getElementById('start-btn'),n=items.length;
-  if(n<2){btn.disabled=true;btn.textContent='Add at least 2 items';}
-  else{btn.disabled=false;const p=n*(n-1)/2;btn.textContent=`Start → ${n} items · ${p} matchups`;}
-}
-
-function genMatchups(ids){
-  const p=[];
-  for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++)p.push([ids[i],ids[j]]);
-  for(let i=p.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
-  return p;
-}
-
-function startRanking(){
-  if(items.length<2)return;
-  items.forEach(i=>scores[i.id]=ELO0);
-  matchups=genMatchups(items.map(i=>i.id));
-  currentM=0;doneCount=0;history=[];skipped=[];
-  showScreen('rank-screen');loadMatch();
-}
-
-function loadMatch(){
-  while(currentM<matchups.length&&skipped.includes(currentM))currentM++;
-  if(currentM>=matchups.length){
-    if(skipped.length){skipped.forEach(i=>matchups.push(matchups[i]));skipped=[];}
-    else{showResults();return;}
-  }
-  const total=matchups.length,pct=Math.round((doneCount/total)*100);
-  document.getElementById('pfill').style.width=pct+'%';
-  document.getElementById('ptxt').textContent=`${doneCount} / ${total}`;
-  const[idA,idB]=matchups[currentM];
-  buildCard('card-a',items.find(i=>i.id===idA));
-  buildCard('card-b',items.find(i=>i.id===idB));
-  document.getElementById('card-a').onclick=()=>vote('a');
-  document.getElementById('card-b').onclick=()=>vote('b');
-}
-
-function buildCard(cid,item){
-  const card=document.getElementById(cid);
-  card.className='mc';card.innerHTML='';if(!item)return;
-  if(item.src&&item.type==='photo'){
-    card.classList.add('is-photo');
-    card.innerHTML=`<img src="${item.src}" alt="${x(item.label)}"><div class="pick-b">Tap to pick</div>`;
-  }else if(item.src&&item.type==='mixed'){
-    card.classList.add('is-photo');
-    card.innerHTML=`<img class="mc-img" src="${item.src}" alt="${x(item.label)}"><div class="mc-lbl">${x(item.label)}</div><div class="pick-b">Tap to pick</div>`;
-  }else{
-    card.classList.add('is-text');
-    card.innerHTML=`<div class="tc-em">${item.emoji||'💬'}</div><div class="tc-tx">${x(item.label)}</div><div class="pick-b">Tap to pick</div>`;
-  }
-}
-
-function vote(side){
-  const[idA,idB]=matchups[currentM];
-  const wId=side==='a'?idA:idB,lId=side==='a'?idB:idA;
-  history.push({m:currentM,idA,idB,sA:scores[idA],sB:scores[idB]});
-  const[nW,nL]=eloWin(scores[wId],scores[lId]);
-  scores[wId]=nW;scores[lId]=nL;
-  document.getElementById('card-'+side).classList.add('flash');
-  doneCount++;currentM++;setTimeout(loadMatch,220);
-}
-
-function voteTie(){
-  const[idA,idB]=matchups[currentM];
-  history.push({m:currentM,idA,idB,sA:scores[idA],sB:scores[idB]});
-  const[nA,nB]=eloTie(scores[idA],scores[idB]);
-  scores[idA]=nA;scores[idB]=nB;doneCount++;currentM++;loadMatch();
-}
-function skipMatch(){skipped.push(currentM);currentM++;loadMatch();}
-function undoLast(){
-  if(!history.length)return;
-  const h=history.pop();scores[h.idA]=h.sA;scores[h.idB]=h.sB;
-  if(doneCount>0)doneCount--;currentM=h.m;loadMatch();
-}
-function confirmQuit(){if(confirm('Quit? Progress will be lost.'))showScreen('setup-screen');}
-
-function eloWin(ws,ls){const e=1/(1+Math.pow(10,(ls-ws)/400));return[Math.round(ws+K*(1-e)),Math.round(ls+K*(0-(1-e)))];}
-function eloTie(sA,sB){const e=1/(1+Math.pow(10,(sB-sA)/400));return[Math.round(sA+K*(0.5-e)),Math.round(sB+K*(0.5-(1-e)))];}
-
-function showResults(){
-  const sorted=items.map(i=>({...i,score:scores[i.id]})).sort((a,b)=>b.score-a.score);
-  const maxS=sorted[0].score,minS=sorted[sorted.length-1].score,range=maxS-minS||1;
-  document.getElementById('rmeta').textContent=`${doneCount} matchups · ${items.length} items`;
-  const list=document.getElementById('rlist');list.innerHTML='';
-  const medals=['🥇','🥈','🥉'],cls=['g','s','b'];
-  sorted.forEach((item,i)=>{
-    const pct=Math.round(((item.score-minS)/range)*100);
-    const row=document.createElement('div');row.className='res-row';row.style.animationDelay=`${i*0.06}s`;
-    const th=item.src?`<img class="r-thumb" src="${item.src}" alt="">`:`<div class="r-tbox">${item.emoji||'💬'}</div>`;
-    row.innerHTML=`<div class="rn ${cls[i]||''}">${medals[i]||(i+1)}</div>${th}<div class="r-inf"><div class="r-nm">${x(item.label)}</div><div class="r-sc">${item.score} ELO</div><div class="r-bg"><div class="r-br" data-p="${pct}"></div></div></div>`;
-    list.appendChild(row);
-  });
-  showScreen('results-screen');
-  document.getElementById('results-screen').scrollTop=0;
-  setTimeout(()=>{list.querySelectorAll('.r-br').forEach(b=>b.style.width=b.dataset.p+'%');},80);
-}
-
-function rankAgain(){
-  items.forEach(i=>scores[i.id]=ELO0);
-  matchups=genMatchups(items.map(i=>i.id));
-  currentM=0;doneCount=0;history=[];skipped=[];
-  showScreen('rank-screen');loadMatch();
-}
-function exportResults(){
-  const sorted=items.map(i=>({...i,score:scores[i.id]})).sort((a,b)=>b.score-a.score);
-  const text=sorted.map((it,i)=>`#${i+1} ${it.label} — ${it.score} ELO`).join('\n');
-  if(navigator.share)navigator.share({title:'BlindRank Results',text});
-  else if(navigator.clipboard)navigator.clipboard.writeText(text).then(()=>alert('Copied!'));
-  else alert(text);
-}
-function hardReset(){
-  items=[];scores={};matchups=[];idCtr=0;currentM=0;doneCount=0;history=[];skipped=[];
-  renderList();updateBtn();showScreen('setup-screen');
-}
-
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function x(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-pickMode('photo');updateBtn();
-</script>
-
-</body>
-</html>
+function form(cb,title,spouse){var f=$('fm2'),g='u';f.innerHTML='<b>'+esc(title)+'</b><input class="in" id="fn" placeholder="Full name"><div class="bt"><button data-g="m">Man / Boy</button><button data-g="f">Woman / Girl</button></div><div class="bt"><button class="pri" id="fo">Add</button></div>';
+ var bs=f.querySelectorAll('[data-g]');bs.forEach(function(b){b.onclick=function(){g=b.dataset.g;bs.forEach(function(x){x.style.borderColor=''});b.style.borderColor='var(--hi)';b.style.borderWidth='4px'}});
+ $('fo').onclick=function(){var v=$('fn').value.trim();if(v)cb(v,g)};$('fn').focus()}
+/* search */
+function all(){var o=[];(function w(n,anc){o.push({i:n.i,n:n.n,l:n.l,a:n.i});n.f&&n.f.forEach(function(x){o.push({i:x.i,n:x.n,l:x.l,a:n.i,h:x.i})});n.s.forEach(function(s){o.push({i:s.i,n:s.n,l:s.l,a:s.i});s.f&&s.f.forEach(function(x){o.push({i:x.i,n:x.n,l:x.l,a:s.i,h:x.i})})});n.k.forEach(function(k){w(k)})})(T);return o}
+$('q').addEventListener('input',function(){var v=this.value.trim().toLowerCase(),R=$('res');if(!v){R.style.display='none';return}var m=all().filter(function(x){return x.n.toLowerCase().indexOf(v)>-1}).slice(0,10);
+ R.innerHTML=m.length?m.map(function(x,i){return'<div data-k="'+i+'"><b>'+esc(x.n)+'</b><small>'+esc(x.l)+'</small></div>'}).join(''):'<div>No match</div>';R.style.display='block';R._m=m});
+$('res').addEventListener('click',function(e){var d=e.target.closest('[data-k]');if(!d)return;var x=this._m[+d.dataset.k];this.style.display='none';$('q').value='';reveal(x)});
+function reveal(x){idx(T,null);var o=byId[x.a];if(!o)return;var c=o.p;while(c){c.o=1;c=byId[c.i].p}sv_();sel=x.a;render();ctr(x.a,Math.max(sc,.8));sh(x.a,x.h);var e=$('c'+x.a);if(e){e.classList.add('pulse')}}
+/* buttons */
+$('bf').onclick=fit;$('bm').onclick=function(){ctr('376',.8)};$('bp').onclick=function(){zoom(1.25)};$('bn').onclick=function(){zoom(.8)};
+function setAll(n,v){n.o=v;n.k.forEach(function(k){setAll(k,v)})}
+$('bx').onclick=function(){$('js').value=JSON.stringify(T);$('ms').textContent='';$('menu').style.display='block'};
+$('cl').onclick=function(){$('menu').style.display='none'};
+$('eo').onclick=function(){setAll(T,1);sv_();render();fit();$('menu').style.display='none'};
+$('ec').onclick=function(){setAll(T,0);T.o=1;sv_();render();fit();$('menu').style.display='none'};
+$('cp').onclick=function(){var t=$('js');t.select();try{navigator.clipboard.writeText(t.value).then(function(){$('ms').textContent='Copied.'},function(){document.execCommand('copy');$('ms').textContent='Copied.'})}catch(e){try{document.execCommand('copy');$('ms').textContent='Copied.'}catch(x){$('ms').textContent='Select the text and copy it.'}}};
+$('im').onclick=function(){try{var d=JSON.parse($('js').value);if(!d.i||!d.k)throw 0;T=d;sv_();sel=null;$('sheet').style.display='none';render();fit();$('menu').style.display='none'}catch(e){$('ms').textContent='That text is not a valid backup.'}};
+$('rs').onclick=function(){if(!confirm('Remove all your changes and go back to the original tree?'))return;T=JSON.parse(JSON.stringify(DATA));try{localStorage.removeItem(KEY)}catch(e){}sel=null;$('sheet').style.display='none';render();ctr('376',.8);$('menu').style.display='none'};
+document.addEventListener('click',function(e){if(!e.target.closest('#res,#q'))$('res').style.display='none'});
+render();ctr('376',Math.min(.8,(vw()-20)/(CW*2+SG+40)>0?.8:.8));setTimeout(function(){$('help').style.display='none'},9000);
+</script></body></html>
